@@ -1,0 +1,228 @@
+{
+  "main": {
+    "id": "bddad4475648b179",
+    "type": "split",
+    "children": [
+      {
+        "id": "e65e1a91af6b6f64",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "d4ee3cdef81cd180",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "新标签页"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "ed17ec62e4b62ed8",
+    "type": "split",
+    "children": [
+      {
+        "id": "969f3cb7e55193a1",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "b93b24d164f75f72",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "文件列表"
+            }
+          },
+          {
+            "id": "2cb2b7e4d559d5fd",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "搜索"
+            }
+          },
+          {
+            "id": "8873b1b85edae03e",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "书签"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "8d88b788e664ef86",
+    "type": "split",
+    "children": [
+      {
+        "id": "7119b59724aa2c6d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "7ed60930ad74f8fb",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "反向链接"
+            }
+          },
+          {
+            "id": "1fdf3668fad37eed",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "出链"
+            }
+          },
+          {
+            "id": "a4291d806cc5a127",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "标签"
+            }
+          },
+          {
+            "id": "477a7a555ec82715",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "添加笔记属性"
+            }
+          },
+          {
+            "id": "90de176885369586",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "大纲"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "canvas:新建白板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false,
+      "bases:创建新数据库": false
+    }
+  },
+  "active": "b93b24d164f75f72",
+  "lastOpenFiles": [
+    "quartz/quartz.config.ts",
+    "quartz/content/index.md",
+    "quartz/node_modules/path-is-inside/lib/path-is-inside.js",
+    "quartz/node_modules/path-is-inside/LICENSE.txt",
+    "quartz/node_modules/path-is-inside/package.json",
+    "quartz/node_modules/path-is-inside/lib",
+    "quartz/node_modules/path-is-inside",
+    "quartz/node_modules/linebreak/node_modules/base64-js/lib/b64.js",
+    "quartz/node_modules/linebreak/node_modules/base64-js/lib",
+    "quartz/node_modules/mdast-util-mdx-jsx/node_modules/unist-util-stringify-position/lib/index.d.ts",
+    "quartz/node_modules/mdast-util-mdx-jsx/node_modules/unist-util-stringify-position/lib/index.js",
+    "quartz/node_modules/mdast-util-mdx-jsx/node_modules/unist-util-stringify-position/lib",
+    "quartz/node_modules/brace-expansion/README.md",
+    "quartz/node_modules/d3-time/README.md",
+    "quartz/node_modules/escalade/readme.md",
+    "quartz/node_modules/hast-util-to-string/readme.md",
+    "quartz/node_modules/internmap/README.md",
+    "quartz/node_modules/mdast-util-gfm-autolink-literal/readme.md",
+    "quartz/node_modules/mdast-util-math/readme.md",
+    "quartz/node_modules/micromark-extension-gfm-strikethrough/readme.md",
+    "quartz/node_modules/micromorph/README.md",
+    "quartz/node_modules/nlcst-to-string/readme.md",
+    "quartz/node_modules/remark-smartypants/readme.md",
+    "quartz/node_modules/speech-rule-engine/bin/README.md",
+    "quartz/node_modules/fetch-ponyfill/node_modules/node-fetch/README.md",
+    "quartz/node_modules/hast-util-to-html/node_modules/property-information/readme.md",
+    "quartz/node_modules/hast-util-to-jsx-runtime/node_modules/@types/unist/README.md",
+    "quartz/node_modules/hast-util-to-jsx-runtime/node_modules/property-information/readme.md",
+    "quartz/node_modules/unist-util-modify-children/node_modules/@types/unist/README.md",
+    "quartz/node_modules/@citation-js/plugin-bibjson/README.md",
+    "quartz/node_modules/@citation-js/plugin-bibjson/LICENSE.md",
+    "quartz/node_modules/@citation-js/name/README.md",
+    "quartz/node_modules/@citation-js/name/CHANGELOG.md",
+    "quartz/node_modules/@citation-js/plugin-csl/README.md",
+    "quartz/node_modules/@citation-js/plugin-csl/LICENSE.md",
+    "quartz/node_modules/@citation-js/plugin-bibtex/README.md",
+    "quartz/node_modules/cli-spinner/img/spinner.gif",
+    "quartz/node_modules/gifuct-js/demo/jblack.gif",
+    "quartz/node_modules/gifuct-js/demo/dog.gif",
+    "quartz/node_modules/gifuct-js/demo/horses.gif",
+    "quartz/node_modules/js-binary-schema-parser/example/dog.gif",
+    "quartz/node_modules/js-binary-schema-parser/example/horses.gif",
+    "quartz/node_modules/js-binary-schema-parser/example/box.gif",
+    "quartz/quartz/static/og-image.png",
+    "quartz/quartz/static/icon.png",
+    "quartz/docs/images/social-image-preview-dark.png"
+  ]
+}
