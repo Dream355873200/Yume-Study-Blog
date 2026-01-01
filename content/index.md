@@ -1,6 +1,19 @@
 ---
-title: Welcome to Quartz
+title: Welcome to Yume's C++ Lab
+---
+---
+title: Yume's C++ Lab
 ---
 
-This is a blank Quartz installation.
-See the [documentation](https://quartz.jzhao.xyz) for how to get started.
+# 欢迎来到我的技术博客
+
+这里是我记录 C++ 后端进阶、高性能服务器开发以及底层库研究的地方。
+
+## 🚀 正在进行的挑战
+- [ ] 研究学习C++并发
+- [ ] 深入分析C++底层
+- [ ] 记录分布式 IM 系统的优化过程
+
+## 🔗 快速链接
+- [[C++20协程基础]]
+- [[项目实战：分布式IM]]
