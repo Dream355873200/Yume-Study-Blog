@@ -178,6 +178,7 @@
   },
   "active": "b93b24d164f75f72",
   "lastOpenFiles": [
+    "content/index.md",
     "quartz/node_modules/vfile/node_modules/vfile-message/lib/index.js",
     "quartz/node_modules/vfile/node_modules/vfile-message/lib/index.d.ts",
     "quartz/node_modules/vfile/node_modules/vfile-message/lib",
@@ -188,7 +189,6 @@
     "quartz/node_modules/unist-util-position/lib/index.d.ts",
     "quartz/node_modules/unist-util-position/lib",
     "quartz/node_modules/unist-util-find-after/lib/index.js",
-    "quartz/node_modules/unist-util-find-after/lib/index.d.ts",
     "quartz/node_modules/rfdc/readme.md",
     "quartz/node_modules/retext-stringify/readme.md",
     "quartz/node_modules/rehype-katex/readme.md",
