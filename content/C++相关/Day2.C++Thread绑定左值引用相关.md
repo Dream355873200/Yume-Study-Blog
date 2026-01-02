@@ -1,6 +1,6 @@
 ---
-title: C++ 并发编程：Thread的一些问题
-date: 2026-01-01
+title: Day2.C++ 并发编程：Thread绑定左值引用相关
+date: 2026-01-02
 tags:
   - Multi-Threading
   - "#c-plus-plus"
@@ -54,10 +54,36 @@ static_assert( __is_invocable<typename decay<_Callable>::type,
 ```
 这段代码在调用static_assert之前**会先进行一次decay调用**
 > [!note]
-> std::decay的作用是移除引用和const volatile限定符，并将数组/函数转换为指针
+> std::decay的作用是移除引用和const volatile限定符，并将数组/函数转换为指针，返回一个类型
 
-所以当传入非引用类型时，经过万能引用会变成一个左值引用，
-在经过decay时触发一次拷贝变成非引用类型，**于是这个拷贝出来的变量就成了临时变量，无法绑定到函数的非const的左值引用类型。**
+所以当传入非引用类型时，经过万能引用会变成一个引用类型，
+在经过decay时会移除引用产出了一个**类型**，但 `__is_invocable` 在进行模拟调用时，它必须决定这个类型以什么**形式**出现。
+
+> [!note]
+> 在 C++ 的类型检查机制中，如果一个参数被确定为“非引用类型”（即 `decay` 后的 `int`），那么在模拟调用时，会使用std::declval，它会被当做 **纯右值 (prvalue)** 处理。
+### 1. `decay` 是一台“粉碎机”
+
+在 C++ 中，左值（Lvalue）和右值（Rvalue）是**表达式的属性**，而不是**类型的属性**。
+
+- `int&` 这种类型自带“我是某个左值的引用”的标记。
+    
+- 但是 `int`（纯粹的类型）本身是中性的。
+    
+
+当 `decay` 把 `int&` 变成 `int` 时，它实际上是执行了“去身份化”。**编译器不再记得这个 `int` 曾经是一个持久的变量（左值），还是一个临时出来的数字（右值）。**
+
+---
+
+### 2. 为什么分不清会导致“当成右值”？
+
+既然分不清了，为什么我们在讨论 `static_assert` 时，总说它变成了**右值**呢？
+> [!note]
+> 
+> 这就是 C++ 模板模拟（`std::declval`）的**保守原则**： **“如果你只给我一个裸类型（如 `int`），而不告诉我它从哪来，为了安全起见，我必须假设它是一个临时拷贝（右值）。”**
+
+
+
+**纯右值当然无法绑定到一个非const的左值引用上**
 
 引发报错：`error: static assertion failed: std::thread arguments must be invocable after conversion to rvalues`
 
@@ -71,7 +97,7 @@ _M_invoke(_Index_tuple<_Ind...>)
 ```
 在函数调用时会触发invoke进行std::move强制转换为右值引用类型，
 右值引用当然不能绑定到一个非const左值引用上，这样报错信息就难以寻找了。
-所以**结论是这个类型检查可以让报错信息更好追踪**
+所以**结论是这个类型检查可以让报错信息更好追踪、更规范**
 
 <mark style="background:rgba(240, 200, 0, 0.2)">但是有时候我们真的想要去绑定一个普通变量到非const左值引用上</mark>，这时候我们需要使用std::ref
 ```cpp
@@ -87,7 +113,7 @@ void test(int someparm)
     std::cout<<someparm;  
 }
 ```
-这下就可以正常运行了，因为std::ref实际上是存储了数据的指针，无论内部怎么型，在调用invoke时使用std::move传递给函数时会进行隐式转换变成原变量的引用。
+这下就可以正常运行了，因为std::ref实际上是存储了数据的指针，无论内部怎么转换，在调用invoke时使用std::move传递给函数时会进行隐式转换变成原变量的引用。
 
 **但是这么做是很危险的，必须完全掌控它的生命周期，避免调用一个已经被释放的空引用引发崩溃**
 
@@ -106,7 +132,8 @@ void test(int someparm)
 
 ### 2. “存储指针”与“隐式转换”
 
-`std::reference_wrapper` 内部确实包装了一个 `T*`。
+因为`std::declval`的原因，`std::reference_wrapper`也会变成一个右值
+但是`std::reference_wrapper` 内部包装了一个 `T*`。
 
 让它能跑通 `static_assert` 的关键在于它的 **`operator T& ()` 重载**：
 

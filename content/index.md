@@ -19,5 +19,6 @@ title: Yume's Blog
 
 > [!example]
 > ##  快速链接
-> - [[Day1.C++Thread初始化]]
+> - [[Day1.C++Thread绑定左值引用相关]]
 > - [[Day2.C++Thread绑定左值引用相关]]
+> - [[Day2.C++构造函数-移动构造相关]]
