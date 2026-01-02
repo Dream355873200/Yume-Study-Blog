@@ -1,11 +1,12 @@
 ---
-title: C++ 并发编程：Thread相关小坑
+title: C++ 并发编程：Thread初始化
 date: 2026-01-01
 tags:
   - Multi-Threading
   - BestPractices
   - "#c-plus-plus"
   - Initialize
+  - thread
 ---
 
 ## 1. Thread 初始化与 C++ 语法歧义

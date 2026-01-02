@@ -19,5 +19,5 @@ title: Yume's Blog
 
 > [!example]
 > ##  快速链接
-> - [[Day1.C++Thread相关小坑]]
-> - [[IM项目总结]]
+> - [[Day1.C++Thread初始化]]
+> - [[Day2.C++Thread绑定左值引用相关]]
