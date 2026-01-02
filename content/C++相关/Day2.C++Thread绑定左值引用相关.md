@@ -72,33 +72,16 @@ static_assert( __is_invocable<typename decay<_Callable>::type,
 > > **注意：** `std::declval` **没有定义（Implementation）**，只有声明。这意味着你**不能在运行期调用它**。如果你尝试在代码中真的执行它，编译器会报错。它只能出现在 `decltype`、`sizeof` 等不求值语境（Unevaluated context）中。
 
 所以当传入非引用类型时，经过万能引用会变成一个引用类型，
-在经过decay时会移除引用产出了一个**类型**，但 `__is_invocable` 在进行模拟调用时， `__is_invocable`内部又调用了一次 **std::declval**
+在经过decay时会移除引用产出了一个**普通类型**，但 `__is_invocable` 在进行模拟调用时， `__is_invocable`内部又调用了一次 **std::declval**将其转换为右值引用
 
-也就是说这行代码，**它的意思是：固定的把变量转换为右值引用，因为右值引用只有在非const左值引用参数绑定才通不过**
+也就是说这行代码，**它的意思是：固定的把任意变量转换为右值引用，因为右值引用只有在非const左值引用参数绑定才通不过**
 
-> [!note]
-> 在 C++ 的类型检查机制中，如果一个参数被确定为“非引用类型”（即 `decay` 后的 `int`），那么在模拟调用时，会使用std::declval，它会被当做 **纯右值 (prvalue)** 处理。
-### 1. `decay` 是一台“粉碎机”
+std::decay会**将各种引用去除变成普通类型**
 
-在 C++ 中，左值（Lvalue）和右值（Rvalue）是**表达式的属性**，而不是**类型的属性**。
-
-- `int&` 这种类型自带“我是某个左值的引用”的标记。
-    
-- 但是 `int`（纯粹的类型）本身是中性的。
-    
-
-当 `decay` 把 `int&` 变成 `int` 时，它实际上是执行了“去身份化”。**编译器不再记得这个 `int` 曾经是一个持久的变量（左值），还是一个临时出来的数字（右值）。**
-
----
-
-### 2. 为什么分不清会导致“当成右值”？
-
-既然分不清了，为什么我们在讨论 `static_assert` 时，总说它变成了**右值**呢？
-
-因为std::declval会**固定的把一个普通类型当成一个右值引用类型**
+std::declval会**把一个普通类型转换为一个右值引用类型**
 
 
-**纯右值当然无法绑定到一个非const的左值引用上**
+**右值引用当然无法绑定到一个非const的左值引用上**
 
 引发报错：`error: static assertion failed: std::thread arguments must be invocable after conversion to rvalues`
 
@@ -159,7 +142,7 @@ template<typename T>
 class reference_wrapper {
     T* _ptr;
 public:
-    operator T& () const noexcept { return *_ptr; } // 隐式转换回左值引用
+    operator T& () const noexcept { return *_ptr; } // 返回左值引用
 };
 ```
 
