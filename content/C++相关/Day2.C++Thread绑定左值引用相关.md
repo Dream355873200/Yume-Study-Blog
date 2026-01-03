@@ -25,7 +25,7 @@ void test(int someparm)
     std::cout<<someparm;  
 }
 ```
-会触发一个static_assert的**函数调用检查错误**
+正常调用会触发一个static_assert的**函数调用检查错误**
 
 因为thread的构造函数是这么写的：
 
@@ -71,10 +71,10 @@ static_assert( __is_invocable<typename decay<_Callable>::type,
 > 
 > > **注意：** `std::declval` **没有定义（Implementation）**，只有声明。这意味着你**不能在运行期调用它**。如果你尝试在代码中真的执行它，编译器会报错。它只能出现在 `decltype`、`sizeof` 等不求值语境（Unevaluated context）中。
 
-所以当传入非引用类型时，经过万能引用会变成一个引用类型，
+所以当传入任何类型时，经过万能引用会变成一个引用类型，
 在经过decay时会移除引用产出了一个**普通类型**，但 `__is_invocable` 在进行模拟调用时， `__is_invocable`内部又调用了一次 **std::declval**将其转换为右值引用
 
-也就是说这行代码，**它的意思是：固定的把任意变量转换为右值引用，因为右值引用只有在非const左值引用参数绑定才通不过**
+也就是说这行代码，**它的意思是：固定的把任意类型转换为右值引用，因为右值引用只有在非const左值引用参数绑定才通不过**
 
 std::decay会**将各种引用去除变成普通类型**
 
