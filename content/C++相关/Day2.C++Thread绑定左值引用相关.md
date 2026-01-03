@@ -146,14 +146,4 @@ public:
 };
 ```
 
-当 `__is_invocable` 模拟调用 `changeparam(wrapper)` 时，由于需要传递引用类型，编译器发现 `wrapper` 可以通过这个**隐式转换的运算符重载**变成 `int&`，正好匹配 `changeparam` 的参数要求。所以 `static_assert` 顺利通过。
-
-### 3. 为什么 `std::move` 没有错误？
-
-你提到“在 `std::move` 给函数时会进行隐式转换”，这里的细节是：
-
-1. `std::thread` 确实会 `move` 那个 `wrapper` 对象。
-    
-2. 但是，**移动一个包装引用的对象，并不会移动底层的数据**。它只是把那个内部指针从旧的 `wrapper` 复制到了新的 `wrapper`（在 `std::thread` 的内部存储结构中）。
-    
-3. 最终调用时，`invoke(wrapper_from_tuple)` 会触发隐式转换，拿到原本那个 `someparm` 的引用。
+当 `__is_invocable` 模拟调用 `changeparam(wrapper)` 时，由于需要传递引用类型，编译器发现 `wrapper` 可以通过这个**隐式转换的运算符重载**变成 `int&`，正好匹配 `changeparam` 的参数要求。所以 `static_assert` 顺利通过，之后的std::move也同理
