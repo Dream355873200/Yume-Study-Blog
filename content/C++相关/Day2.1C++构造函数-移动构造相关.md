@@ -26,12 +26,7 @@ MyClass& operator=(MyClass&&)
 
 ## 1. `std::move` 的本质
 
-`std::move` 并不移动任何东西。它的唯一作用是执行**强制类型转换**，将一个左值（Lvalue）转换为右值引用（Rvalue Reference）。
-
-- 当你写 `A a2 = std::move(a1);` 时，你只是在告诉编译器：“把 `a1` 当作右值来看待”。
-    
-- 编译器随后会寻找最匹配的构造函数。
-    
+`std::move` 并不移动任何东西。它的唯一作用是执行**强制类型转换**，将一个类型转换为右值引用（Rvalue Reference）。
 
 ## 2. 为什么是拷贝构造？
 
