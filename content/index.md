@@ -22,3 +22,4 @@ title: Yume's Blog
 > - [[Day1.C++Thread绑定左值引用相关]]
 > - [[Day2.C++Thread绑定左值引用相关]]
 > - [[Day2.C++构造函数-移动构造相关]]
+> - [[Day3.C++原子变量学习]]
