@@ -19,7 +19,7 @@ title: Yume's Blog
 
 > [!example]
 > ##  快速链接
-> - [[Day1.1C++Thread绑定左值引用相关]]
+> - [[Day1.1C++Thread初始化]]
 > - [[Day2.2C++Thread绑定左值引用相关]]
 > - [[Day2.1C++构造函数-移动构造相关]]
 > - [[Day3.1C++原子变量学习]]

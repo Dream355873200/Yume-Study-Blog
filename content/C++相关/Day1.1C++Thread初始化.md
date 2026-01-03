@@ -1,5 +1,5 @@
 ---
-title: Day1.C++Thread绑定左值引用相关
+title: Day1.C++Thread初始化
 date: 2026-01-01
 tags:
   - Multi-Threading

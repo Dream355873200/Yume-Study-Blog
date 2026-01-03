@@ -6,6 +6,7 @@ tags:
   - BestPractices
   - "#c-plus-plus"
   - Dead-Lock
+  - scoped_lock
 ---
 
 虽然我们想：我都使用lock_guard来管理我的锁了，那**应该不会发生死锁了吧**。
