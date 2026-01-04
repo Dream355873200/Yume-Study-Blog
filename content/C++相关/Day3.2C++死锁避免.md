@@ -1,5 +1,5 @@
 ---
-title: Day3.C++死锁避免
+title: Day3.2C++死锁避免
 date: 2026-01-03
 tags:
   - Multi-Threading

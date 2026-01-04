@@ -1,5 +1,5 @@
 ---
-title: Day2.C++ 并发编程：Thread绑定左值引用相关
+title: Day2.2C++ 并发编程：Thread绑定左值引用相关
 date: 2026-01-02
 tags:
   - Multi-Threading

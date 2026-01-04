@@ -1,5 +1,5 @@
 ---
-title: Day2.C++构造函数-移动构造相关
+title: Day2.1C++构造函数-移动构造相关
 date: 2026-01-02
 tags:
   - "#c-plus-plus"
