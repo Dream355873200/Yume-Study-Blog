@@ -3,8 +3,8 @@ title: Cuda编程入门-WSL
 date: 2026-01-04
 tags:
   - Multi-Threading
-  - BestPractices
-  - "#c-plus-plus"
+  - CUDA
+  - kernel
 ---
 
 今天学习**WSL环境下的CUDA编程**
