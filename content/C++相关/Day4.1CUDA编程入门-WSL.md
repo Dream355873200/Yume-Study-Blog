@@ -1,5 +1,5 @@
 ---
-title: Cuda编程入门-WSL
+title: Day4.1CUDA编程入门-WSL
 date: 2026-01-04
 tags:
   - Multi-Threading
