@@ -9,8 +9,9 @@ tags:
   - mutex
   - Dead-Lock
 ---
-今天学习std::unique_lock的底层原理
+今天学习**std::unique_lock的底层原理**
 
+它和lock_gurad基本上是同一个作用
 研究源码发现它有且只有**两个关键的私有变量**
 
 ```cpp
@@ -68,12 +69,14 @@ try_to_lock是尝试加锁，所以**它可以在你不确定是否已经上锁�
 比较安全的是 unique_lock在**析构前先会判断M_own**，再进行解锁，
 而lock_gurad的析构**只有一行unlock**。
 
-它的特点是：**能够主动调用lock和unlock进行加锁，析构时会自动解锁**。
+> [!note]
+> **std::unique_lock**它的特点是：**能够主动调用lock和unlock进行加锁，析构时会自动解锁**。
 
-另外重要的是，
+
+---
+
+**另外重要的是:**
+
 无论是lock_gurad还是unique_lock的adopt，都是**默认你的互斥量已经上锁的**。
-unique_lock的defer，**默认你的互斥量没有上锁**。
 
-这点要注意，在lockgurad上领养一个未加锁的互斥量是会崩溃的，因为**重复解锁行为是Undefined**。
-
-所以我们可以发现，**unique_lock基本可以认为是lock_gurad的一个更安全的升级版**（但也更重）。
+这点要注意，它们两个在领养一个未加锁的互斥量都是会崩溃的，因为**重复解锁是Undefined行为**

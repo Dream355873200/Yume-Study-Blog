@@ -1,5 +1,5 @@
 ---
-title: Day2.2C++ 并发编程：Thread绑定左值引用相关
+title: Day2.2C++ Thread构造函数底层-左值引用
 date: 2026-01-02
 tags:
   - Multi-Threading
