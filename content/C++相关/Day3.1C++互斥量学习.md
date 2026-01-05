@@ -1,5 +1,5 @@
 ---
-title: Day3.1C++原子变量学习
+title: Day3.1C++互斥量学习
 date: 2026-01-03
 tags:
   - Multi-Threading
