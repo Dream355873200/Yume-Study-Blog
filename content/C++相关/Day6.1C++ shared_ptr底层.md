@@ -135,7 +135,7 @@ private:
   _Atomic_word  _M_use_count;     // #shared  
   _Atomic_word  _M_weak_count;    // #weak + (#shared != 0)
 ```
-它只存储了计数变量int类型，然后我们发现它是有一些虚函数
+它只存储了计数变量int类型，然后我们发现**它是有一些虚函数**
 ```cpp
 virtual  
 ~_Sp_counted_base() noexcept  
@@ -157,7 +157,7 @@ _M_get_deleter(const std::type_info&) noexcept = 0;
 
 
 
-于是找到了继承类
+于是找到了**继承类**
 
 ```cpp
 class _Sp_counted_ptr final : public _Sp_counted_base<_Lp>  
@@ -242,7 +242,7 @@ _M_dispose() noexcept
 
 分别对应：
 
-普通派生
+普通派生的`__shared_count`构造
 ```cpp
 __shared_count(_Ptr __p) : _M_pi(0)  
 {  
@@ -258,7 +258,7 @@ __shared_count(_Ptr __p) : _M_pi(0)
 }
 ```
 
-删除器派生
+删除器派生的`__shared_count`构造
 ```cpp
    template<typename _Ptr, typename _Deleter, typename _Alloc,  
        typename = typename __not_alloc_shared_tag<_Deleter>::type>  
