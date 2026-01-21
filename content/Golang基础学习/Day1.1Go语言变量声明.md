@@ -2,9 +2,7 @@
 title: Day1.1Go语言变量声明
 date: 2026-01-21
 tags:
-  - Multi-Threading
-  - BestPractices
-  - "#c-plus-plus"
+  - Golang
 ---
 ## 1.前言
 
