@@ -2,11 +2,10 @@
 title: Lecture1：Introduction
 date: 2026-02-10
 tags:
-  - Multi-Threading
-  - BestPractices
   - "#c-plus-plus"
   - MIT
   - distributed-system
+  - Performance
 ---
 # 1. 分布式系统基本介绍
 
