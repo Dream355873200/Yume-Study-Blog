@@ -10,37 +10,347 @@ tags:
 
 ## 1. 前言
 
-**参考论文：** [[mapreduce.pdf]]
+**参考论文：** _MapReduce: Simplified Data Processing on Large Clusters_, Jeffrey Dean and Sanjay Ghemawat, OSDI 2004 [[gfs.pdf]]
+
+---
 
 ### 个人理解
 
-嗯实际上，经过我粗略地阅读论文并观察 Lab1 提供的样板代码后，我发现 MapReduce 架构核心是一个主节点 **Master**（Lab 中称为 **Coordinator**）和多个 **Worker**。
+经过粗略阅读论文并观察 Lab1 提供的样板代码后，我发现 MapReduce 架构核心是一个主节点 **Master**（Lab 中称为 **Coordinator**）和多个 **Worker**。
 
-**关于通信机制：** 与论文描述不同的是，我发现Lab 实验使用了 `net/rpc`。这种rpc实际是
-**单向通信**，即只能由客户端（Worker）主动发往服务端（Coordinator）。因此，我实现的Lab 具体架构和算法实现与论文原型的“Master 主动推送”逻辑是有所区别的。
+**关于通信机制：** 与论文描述不同的是，Lab 实验使用了 `net/rpc`。这种 RPC 实际是**单向通信**，即只能由客户端（Worker）主动发往服务端（Coordinator）。因此，我实现的 Lab 具体架构和算法实现与论文原型的"Master 主动推送"逻辑是有所区别的。
 
 **关于超时控制：** Lab 要求的超时控制是通过 Master 定期检查任务状态实现的。在我的实现中，我采用了一种简单有效的策略：
 
-1. Worker 完成任务后发送 `Complete` 消息。
-2. Master 在分配任务的同时启动一个协程（Goroutine），睡眠 10 秒（实验要求）。
-3. 睡眠结束后检查该任务是否被标记为“已完成”，如果没有，则将其重新放入待分配队列。
+1. Worker 完成任务后发送 `Complete` 消息
+2. Master 在分配任务的同时启动一个协程（Goroutine），睡眠 10 秒（实验要求）
+3. 睡眠结束后检查该任务是否被标记为"已完成"，如果没有，则将其重新放入待分配队列
 
 这份代码的架构是我综合了老师的样板代码和论文原理后的结果。虽然可能不是最完美的，但对我现在的水平来说，解决其中的逻辑冲突已经很有挑战性了，也很有启发。
 
 ---
 
-## 2. MapReduce 具体架构
+## 2. 论文架构 vs 实验架构对比
 
+### 论文中的执行流程（Figure 1）
+
+```text
+
+                                    ┌────────────────┐
+
+                                    │  User Program  │
+
+                                    └───────┬────────┘
+
+                                            │ (1) fork
+
+                    ┌───────────────────────┼───────────────────────┐
+
+                    ▼                       ▼                       ▼
+
+              ┌──────────┐            ┌──────────┐            ┌──────────┐
+
+              │  Master  │            │  Worker  │            │  Worker  │
+
+              └────┬─────┘            └────┬─────┘            └────┬─────┘
+
+                   │                       │                       │
+
+                   │ (2) assign map        │                       │
+
+                   │ ─────────────────────►│                       │
+
+                   │                       │ (3) read input split  │
+
+                   │                       │ (4) local write       │
+
+                   │                       │     intermediate      │
+
+                   │◄──────────────────────│     files             │
+
+                   │    locations          │                       │
+
+                   │                       │                       │
+
+                   │ (2) assign reduce     │                       │
+
+                   │ ──────────────────────────────────────────────►
+
+                   │                       │                       │
+
+                   │                       │         (5) remote read
+
+                   │                       │◄──────────────────────│
+
+                   │                       │                       │
+
+                   │                       │         (6) write output
+
+                   │                       │                       │
+```
+
+**论文特点：Master 主动推送任务**
+
+### 实验中的执行流程（基于 RPC Pull 模型）
+
+```text
+              ┌─────────────┐
+
+              │ Coordinator │
+
+              │  (Master)   │
+
+              └──────┬──────┘
+
+                     │
+
+         ┌───────────┼───────────┐
+
+         │           │           │
+
+         ▼           ▼           ▼
+
+    ┌────────┐  ┌────────┐  ┌────────┐
+
+    │ Worker │  │ Worker │  │ Worker │
+
+    └───┬────┘  └───┬────┘  └───┬────┘
+
+        │           │           │
+
+        │  "给我任务！"          │
+
+        │ ─────────────────────►│ (Coordinator)
+
+        │           │           │
+
+        │◄─────────────────────│
+
+        │   返回 Map/Reduce     │
+
+        │   任务信息             │
+
+        │           │           │
+
+        │  执行任务...           │
+
+        │           │           │
+
+        │  "我完成了！"          │
+
+        │ ─────────────────────►│
+
+        │           │           │
+```
+
+**实验特点：Worker 主动拉取任务（Pull 模型）**
+
+### 关键差异总结
+
+|方面|论文设计|实验实现|
+|---|---|---|
+|**任务分配**|Master 主动推送|Worker 主动拉取（RPC）|
+|**通信方向**|双向|单向（Worker → Coordinator）|
+|**中间文件位置**|Master 追踪并通知 Reduce Worker|Worker 自行扫描本地文件|
+|**故障检测**|Master ping Worker|Coordinator 超时协程检测|
+
+---
+
+## 3. MapReduce 具体架构
+
+### 整体数据流
+
+```text
+
+┌─────────────────────────────────────────────────────────────────────────┐
+
+│                           MapReduce 数据流                               │
+
+└─────────────────────────────────────────────────────────────────────────┘
+
+  Input Files                    Intermediate Files              Output Files
+
+ ┌──────────┐                                                   ┌──────────┐
+
+ │ split 0  │──► Map Task 0 ──┬──► mr-0-0 ──┐                   │mr-out-0  │
+
+ ├──────────┤                 ├──► mr-0-1 ──┼──► Reduce Task 0 ─►├──────────┤
+
+ │ split 1  │──► Map Task 1 ──┼──► mr-1-0 ──┤                   │mr-out-1  │
+
+ ├──────────┤                 ├──► mr-1-1 ──┼──► Reduce Task 1 ─►├──────────┤
+
+ │ split 2  │──► Map Task 2 ──┼──► mr-2-0 ──┤                   │   ...    │
+
+ ├──────────┤                 └──► mr-2-1 ──┘                   └──────────┘
+
+ │   ...    │
+
+ └──────────┘
+
+                    │                              │
+
+                    ▼                              ▼
+
+              Hash(key) % R                   按 key 排序
+
+              分桶写入                          聚合输出
+
+```
 ### Master 节点：状态机模式
 
 我的 Master 节点采用**状态机模式**来管理整个 Job 的生命周期。通过 `RunningStage` 变量来控制当前处于 Map、Reduce 还是结束阶段。
 
-#### 核心函数：TaskSend (RPC)
+```text
+┌─────────────────────────────────────────────────────────────┐
+
+│                    Coordinator 状态机                        │
+
+├─────────────────────────────────────────────────────────────┤
+
+│                                                             │
+
+│    ┌─────────────┐     所有 Map      ┌─────────────┐       │
+
+│    │   Stage 1   │     任务完成       │   Stage 2   │       │
+
+│    │   (Map)     │ ─────────────────► │  (Reduce)   │       │
+
+│    └─────────────┘                    └──────┬──────┘       │
+
+│          │                                   │              │
+
+│          │ 分配 Map 任务                      │ 分配 Reduce  │
+
+│          ▼                                   ▼              │
+
+│    ┌─────────────┐                    ┌─────────────┐       │
+
+│    │   Worker    │                    │   Worker    │       │
+
+│    │  执行 Map   │                    │ 执行 Reduce │       │
+
+│    └─────────────┘                    └──────┬──────┘       │
+
+│                                              │              │
+
+│                                   所有 Reduce 任务完成       │
+
+│                                              │              │
+
+│                                              ▼              │
+
+│                                       ┌─────────────┐       │
+
+│                                       │   Stage 3   │       │
+
+│                                       │   (Done)    │       │
+
+│                                       └─────────────┘       │
+
+│                                                             │
+
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 状态维护：Coordinator 结构体
+
+```go
+
+type Coordinator struct {
+
+    lock         sync.Mutex
+
+    RunningStage int                 // 1: Map, 2: Reduce, 3: Over
+
+    InputFile    []string            // 待处理的输入文件队列
+
+    ReduceNum    []int               // 待处理的 Reduce 分区号队列
+
+    ToMapNum     int                 // 待完成的 Map 任务数
+
+    ToReduceNum  int                 // 待完成的 Reduce 任务数
+
+    NowID        int                 // Task 唯一自增 ID
+
+    Tasks        map[int]*TaskStatus // Task 状态表
+
+    MapNum       int                 // Map 的初始化编号
+
+    NReduce      int                 // Reduce 任务总数
+
+}
+
+type TaskStatus struct {
+
+    Status    int      // 0: 未完成, 1: 已完成, 2: 超时
+
+    Files     []string // 关联的文件
+
+    ReduceNum int      // Reduce 分区号
+
+}
+```
+
+**数据结构示意图：**
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+
+│                    Coordinator 数据结构                      │
+
+├─────────────────────────────────────────────────────────────┤
+
+│                                                             │
+
+│  InputFile Queue (待处理 Map 任务)                           │
+
+│  ┌────────┬────────┬────────┬────────┐                      │
+
+│  │ pg-1   │ pg-2   │ pg-3   │  ...   │ ──► 取出分配给 Worker │
+
+│  └────────┴────────┴────────┴────────┘                      │
+
+│                                                             │
+
+│  ReduceNum Queue (待处理 Reduce 任务)                        │
+
+│  ┌────┬────┬────┬────┬─────┐                                │
+
+│  │  0 │  1 │  2 │ .. │ R-1 │ ──► 取出分配给 Worker           │
+
+│  └────┴────┴────┴────┴─────┘                                │
+
+│                                                             │
+
+│  Tasks Map (任务状态追踪)                                    │
+
+│  ┌─────────┬────────────────────────┐                       │
+
+│  │ TaskID  │ Status / Files / ...   │                       │
+
+│  ├─────────┼────────────────────────┤                       │
+
+│  │    0    │ {1, ["pg-1"], 0}       │  ← 已完成             │
+
+│  │    1    │ {0, ["pg-2"], 0}       │  ← 进行中             │
+
+│  │    2    │ {2, ["pg-3"], 0}       │  ← 超时，需重试        │
+
+│  └─────────┴────────────────────────┘                       │
+
+│                                                             │
+
+└─────────────────────────────────────────────────────────────┘
+
+```
+---
+
+## 4. 核心函数：TaskSend (RPC)
 
 这是最重要的函数。Worker 会一直循环调用它来请求任务。Master 根据当前阶段判断该给 Worker 分配什么工作。
 
 ```go
-  
 func (c *Coordinator) TaskSend(args TaskArgs, reply *TaskReply) error {  
     c.lock.Lock()  
     defer c.lock.Unlock()  
@@ -91,277 +401,543 @@ func (c *Coordinator) TaskSend(args TaskArgs, reply *TaskReply) error {
   
     return nil  
 }
-
-
 ```
 
-这个RPC服务函数是最重要的函数，
-woker节点在发送InitCall获取nReduce后就一直循环调用TaskSend函数获取执行的任务，
-让Master节点来判断什么时候该切换任务状态
+**TaskSend 流程图：**
 
-### 状态维护：Coordinator 结构体
+```text
 
-为了支撑上述逻辑，Master 需要维护全局的待处理队列和任务状态表：
-```go
-type Coordinator struct {  
-    // Your definitions here.  
-    lock         sync.Mutex  
-    RunningStage int                 //1 map,2reduce,3over  
-    InputFile    []string            //输入的文件名  
-    ReduceNum    []int               //reduce从1-10  
-    ToMapNum     int                 //待map的任务量  
-    ToReduceNum  int                 //待Reduce的任务量  
-    NowID        int                 //Task唯一自增ID  
-    Tasks        map[int]*TaskStatus //Task  
-  
-    MapNum int //map的初始化编号  
-  
-    NReduce int //NReduce  
-}
-type TaskStatus struct {  
-    Status    int //0未完成，1已完成,2超时  
-    Files     []string  
-    ReduceNum int  
-}
+┌─────────────────────────────────────────────────────────────┐
+
+│                    TaskSend RPC 处理流程                     │
+
+└─────────────────────────────────────────────────────────────┘
+
+                    Worker 调用 TaskSend
+
+                            │
+
+                            ▼
+
+                    ┌───────────────┐
+
+                    │  获取锁 Lock  │
+
+                    └───────┬───────┘
+
+                            │
+
+                            ▼
+
+                ┌───────────────────────┐
+
+                │  检查 RunningStage    │
+
+                └───────────┬───────────┘
+
+                            │
+
+           ┌────────────────┼────────────────┐
+
+           │                │                │
+
+           ▼                ▼                ▼
+
+    ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+
+    │  Stage = 1  │  │  Stage = 2  │  │  Stage = 3  │
+
+    │    (Map)    │  │  (Reduce)   │  │   (Done)    │
+
+    └──────┬──────┘  └──────┬──────┘  └──────┬──────┘
+
+           │                │                │
+
+           ▼                ▼                ▼
+
+    ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+
+    │InputFile空？│  │ReduceNum空？│  │返回 Type=3  │
+
+    └──────┬──────┘  └──────┬──────┘  │ (通知结束)  │
+
+           │                │         └─────────────┘
+
+       ┌───┴───┐        ┌───┴───┐
+
+       │       │        │       │
+
+       ▼       ▼        ▼       ▼
+
+    ┌─────┐ ┌─────┐  ┌─────┐ ┌─────┐
+
+    │ 是  │ │ 否  │  │ 是  │ │ 否  │
+
+    │等待 │ │分配 │  │等待 │ │分配 │
+
+    │     │ │Map  │  │     │ │Red. │
+
+    └─────┘ └──┬──┘  └─────┘ └──┬──┘
+
+               │                │
+
+               ▼                ▼
+
+        ┌─────────────────────────────┐
+
+        │  启动超时检测 Goroutine      │
+
+        │  go MapTaskTest / ReduceTest │
+
+        └─────────────────────────────┘
+
 ```
+---
+
+## 5. 超时检测与队列重入机制
 
 我处理 Worker 错误采用了**队列重入**的思想。
-维护一个InputFile和ReduceNum
-如果 `MapTaskTest` 发现任务超时，就把对应的文件重新放回 `InputFile`和`ReduceNum` 队列。
-让其他的Worker节点来重新读取和执行
 
-## 3. Worker 节点实现
+```text
+
+┌─────────────────────────────────────────────────────────────┐
+
+│                    超时检测机制                              │
+
+└─────────────────────────────────────────────────────────────┘
+
+  分配任务时                              10秒后
+
+      │                                     │
+
+      ▼                                     ▼
+
+┌───────────┐                         ┌───────────┐
+
+│ 启动任务  │                         │ 检查状态  │
+
+│ 记录状态  │ ──────── sleep(10s) ───►│           │
+
+│ Status=0  │                         │           │
+
+└───────────┘                         └─────┬─────┘
+
+                                            │
+
+                              ┌─────────────┴─────────────┐
+
+                              │                           │
+
+                              ▼                           ▼
+
+                       ┌─────────────┐             ┌─────────────┐
+
+                       │ Status = 1  │             │ Status = 0  │
+
+                       │  (已完成)   │             │  (未完成)   │
+
+                       └─────────────┘             └──────┬──────┘
+
+                              │                          │
+
+                              ▼                          ▼
+
+                       ┌─────────────┐             ┌─────────────┐
+
+                       │   无操作    │             │ 标记 Status │
+
+                       │             │             │    = 2      │
+
+                       └─────────────┘             │  (超时)     │
+
+                                                  └──────┬──────┘
+
+                                                         │
+
+                                                         ▼
+
+                                                  ┌─────────────┐
+
+                                                  │ 文件/分区号 │
+
+                                                  │ 重入队列    │
+
+                                                  └─────────────┘
+```
+
+**代码逻辑：**
+
+如果 `MapTaskTest` 发现任务超时，就把对应的文件重新放回 `InputFile` 或 `ReduceNum` 队列，让其他的 Worker 节点来重新读取和执行。
+
+---
+
+## 6. Worker 节点实现
 
 Worker 同样是一个状态机。它不断向 Master 请求任务，根据返回的 `TaskType` 执行 Map、Reduce 或者直接退出。
 
-### Worker 主循环逻辑
-```go
-func Worker(sockname string, mapf func(string, string) []KeyValue,  
-    reducef func(string, []string) string) {  
-    coordSockName = sockname  
-  
-    err := InitCall()  
-    if err != nil {  
-       panic("Init fail")  
-    }  
-  
-    for {  
-       reply, err := TaskRequest()  
-       if err != nil {  
-  
-       }  
-  
-       intermediate := []KeyValue{}  
-       switch reply.TaskType {  
-       case 0:  
-          {  
-             time.Sleep(5 * time.Second)  
-          }  
-       case 1:  
-          {  
-             for _, filename := range reply.FileName {  
-                file, err := os.Open(filename)  
-                if err != nil {  
-                   log.Fatalf("cannot open %v", filename)  
-                }  
-                content, err := ioutil.ReadAll(file)  
-                if err != nil {  
-                   log.Fatalf("cannot read %v", filename)  
-                }  
-                kva := mapf(filename, string(content))  
-                intermediate = append(intermediate, kva...)  
-                file.Close()  
-             }  
-  
-             buckets := make(map[int][]KeyValue)  
-  
-             for _, kv := range intermediate {  
-                ReduceNum := ihash(kv.Key) % nReduce  
-                buckets[ReduceNum] = append(buckets[ReduceNum], kv) //创建一个哈希桶,对应每个reduce  
-             }  
-  
-             tempFiles := make([]*os.File, nReduce)  
-             tempNames := make([]string, nReduce)  
-             for i := 0; i < nReduce; i++ {  
-                tempFile, err := os.CreateTemp(".", "mr-tmp-*")  
-                if err != nil {  
-                   log.Fatal(err)  
-                }  
-                tempFiles[i] = tempFile  
-                tempNames[i] = tempFile.Name()  
-  
-                enc := json.NewEncoder(tempFile)  
-                for _, kv := range buckets[i] {  
-                   err := enc.Encode(&kv)  
-                   if err != nil {  
-                      log.Fatal(err)  
-                   }  
-                }  
-  
-                // 关闭文件  
-                tempFile.Close()  
-             } //根据每个桶创建一个临时文件  
-  
-             for i := 0; i < nReduce; i++ {  
-                finalName := fmt.Sprintf("mr-%d-%d", reply.TaskId, i)  
-                err := os.Rename(tempNames[i], finalName)  
-                if err != nil {  
-                   log.Fatal(err)  
-                }  
-             } //原子重命名每个临时文件  
-  
-          }  
-       case 2:  
-          { //TODO先请求要处理的reduceNum,再查找本地文件所有对应reduceNum的mapTask编号，再去请求查找所有标记为已完成的Task而不是超时的Task，根据已完成的task编号处理所有的对应文件，输出。  
-  
-             pattern := "mr-*-" + strconv.Itoa(reply.ReduceNum)  
-  
-             files, err := filepath.Glob(pattern)  
-             if err != nil {  
-                log.Fatal(err)  
-             }  
-  
-             var mapTaskNum []int  
-             for _, f := range files {  
-                if strings.HasPrefix(filepath.Base(f), "mr-out-") {  
-                   log.Printf("Skipping output file: %s", f)  
-                   continue  
-                }  
-  
-                if strings.Contains(f, "worker") || strings.Contains(f, "jobcount") || strings.Contains(f, "tmp") {  
-                   log.Printf("Skipping non-intermediate file: %s", f)  
-                   continue  
-                }  
-  
-                taskNum, err := ExtractMiddleNum(f)  
-                if err != nil {  
-                   log.Fatal(err)  
-                }  
-                mapTaskNum = append(mapTaskNum, taskNum)  
-             } //取出所有task编号  
-  
-             TasksReply, err := QueryTasks()  
-             if err != nil {  
-                log.Fatal(err)  
-             }  
-  
-             var resultSet []int  
-             for _, Num := range mapTaskNum {  
-                status, ok := TasksReply.AllTask[Num]  
-                if !ok {  
-                   log.Fatalf("cannot find task %d", Num)  
-                }  
-                if status.Status == 1 {  
-                   resultSet = append(resultSet, Num)  
-                } //得到结果集  
-  
-             }  
-  
-             for _, f := range files {  
-                if strings.HasPrefix(filepath.Base(f), "mr-out-") {  
-                   log.Printf("Skipping output file: %s", f)  
-                   continue  
-                }  
-  
-                if strings.Contains(f, "worker") || strings.Contains(f, "jobcount") || strings.Contains(f, "tmp") {  
-                   log.Printf("Skipping non-intermediate file: %s", f)  
-                   continue  
-                }  
-                mapNum, err := ExtractMiddleNum(f)  
-                if err != nil {  
-                   log.Fatal(err)  
-                }  
-                file, err := os.Open(f)  
-                if err != nil {  
-                   log.Fatalf("cannot open %v", f)  
-                }  
-                var dec *json.Decoder  
-                for _, num := range resultSet {  
-                   if num == mapNum {  
-  
-                      dec = json.NewDecoder(file)  
-  
-                   } //得到所有已完成的中间文件的jsondec  
-                }  
-  
-                for {  
-                   var kv KeyValue  
-                   if err := dec.Decode(&kv); err != nil {  
-                      break  
-                   }  
-                   intermediate = append(intermediate, kv)  
-  
-                } //得到所有的key value值  
-                file.Close()  
-             }  
-             sort.Sort(ByKey(intermediate))  
-             //字典序排序kva  
-  
-             tempFile, _ := os.CreateTemp(".", "mr-out-tmp-*")  
-  
-             //  
-             // call Reduce on each distinct key in intermediate[],             // and print the result to mr-out-0.             //             i := 0  
-             for i < len(intermediate) {  
-                j := i + 1  
-                for j < len(intermediate) && intermediate[j].Key == intermediate[i].Key {  
-                   j++  
-                }  
-                values := []string{}  
-                for k := i; k < j; k++ {  
-                   values = append(values, intermediate[k].Value)  
-                }  
-                output := reducef(intermediate[i].Key, values)  
-  
-                // this is the correct format for each line of Reduce output.  
-                fmt.Fprintf(tempFile, "%v %v\n", intermediate[i].Key, output)  
-  
-                i = j  
-             }  
-  
-             err = tempFile.Close()  
-             if err != nil {  
-                return   
-}  
-             finalName := "mr-out-" + strconv.Itoa(reply.ReduceNum)  
-             os.Rename(tempFile.Name(), finalName)  
-          }  
-       case 3:  
-          {  
-             log.Println("task over")  
-             return  
-          }  
-       }  
-  
-       args := CompleteArgs{  
-          TaskId:    reply.TaskId,  
-          TaskType:  reply.TaskType,  
-          FileName:  reply.FileName,  
-          ReduceNum: reply.ReduceNum,  
-       }  
-       _, err = CompleteRequest(args)  
-       if err != nil {  
-          return  
-       }  
-  
-    }  
-  
-    // Your worker implementation here.  
-  
-    // uncomment to send the Example RPC to the coordinator.    // CallExample()  
-}
+### Worker 主循环状态机
+
+```text
+
+┌─────────────────────────────────────────────────────────────┐
+
+│                    Worker 状态机                             │
+
+└─────────────────────────────────────────────────────────────┘
+
+                         ┌──────────────┐
+
+                         │  InitCall()  │
+
+                         │  获取 nReduce │
+
+                         └──────┬───────┘
+
+                                │
+
+                                ▼
+
+                    ┌───────────────────────┐ ◄─────────────┐
+
+                    │    TaskRequest()      │               │
+
+                    │    请求任务            │               │
+
+                    └───────────┬───────────┘               │
+
+                                │                           │
+
+                                ▼                           │
+
+                    ┌───────────────────────┐               │
+
+                    │  检查 TaskType        │               │
+
+                    └───────────┬───────────┘               │
+
+                                │                           │
+
+        ┌───────────┬───────────┼───────────┬───────────┐   │
+
+        │           │           │           │           │   │
+
+        ▼           ▼           ▼           ▼           │   │
+
+   ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐      │   │
+
+   │ Type=0  │ │ Type=1  │ │ Type=2  │ │ Type=3  │      │   │
+
+   │  等待   │ │   Map   │ │ Reduce  │ │  退出   │      │   │
+
+   └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘      │   │
+
+        │           │           │           │           │   │
+
+        ▼           ▼           ▼           ▼           │   │
+
+   sleep(5s)   执行 Map    执行 Reduce    return        │   │
+
+        │           │           │                       │   │
+
+        │           ▼           ▼                       │   │
+
+        │      ┌─────────────────────┐                  │   │
+
+        │      │ CompleteRequest()   │                  │   │
+
+        │      │ 通知完成             │                  │   │
+
+        │      └──────────┬──────────┘                  │   │
+
+        │                 │                             │   │
+
+        └─────────────────┴─────────────────────────────┘   │
+
+                                │                           │
+
+                                └───────────────────────────┘
 ```
-## 4. 关键设计点总结
 
-1. **原子操作保障一致性：** 对于 Map 和 Reduce 产出的文件，**一定**要先 `os.CreateTemp` 再 `os.Rename`。这避免了“僵尸 Worker”（跑得慢但没死）写坏已经成功生成的文件。
+### Map 任务执行流程
+
+```text
+
+┌─────────────────────────────────────────────────────────────┐
+
+│                    Map 任务执行流程                          │
+
+└─────────────────────────────────────────────────────────────┘
+
+         输入文件
+
+            │
+
+            ▼
+
+    ┌───────────────┐
+
+    │  读取文件内容  │
+
+    │  os.Open()    │
+
+    └───────┬───────┘
+
+            │
+
+            ▼
+
+    ┌───────────────┐
+
+    │  调用 mapf()  │
+
+    │  生成 KV 对   │
+
+    └───────┬───────┘
+
+            │
+
+            ▼
+
+    ┌───────────────────────────────────────┐
+
+    │          Hash 分桶                     │
+
+    │  for kv in intermediate:              │
+
+    │      bucket[hash(kv.Key) % R].add(kv) │
+
+    └───────────────┬───────────────────────┘
+
+                    │
+
+                    ▼
+
+    ┌───────────────────────────────────────┐
+
+    │        写入临时文件                    │
+
+    │   mr-tmp-* (每个 bucket 一个文件)     │
+
+    └───────────────┬───────────────────────┘
+
+                    │
+
+                    ▼
+
+    ┌───────────────────────────────────────┐
+
+    │        原子重命名                      │
+
+    │   mr-tmp-* → mr-{TaskId}-{ReduceNum} │
+
+    └───────────────────────────────────────┘
+
+```
+### Reduce 任务执行流程
+
+```text
+
+┌─────────────────────────────────────────────────────────────┐
+
+│                    Reduce 任务执行流程                       │
+
+└─────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────┐
+
+    │  扫描本地文件 mr-*-{ReduceNum}       │
+
+    │  使用 filepath.Glob()               │
+
+    └───────────────┬─────────────────────┘
+
+                    │
+
+                    ▼
+
+    ┌─────────────────────────────────────┐
+
+    │  QueryTasks() RPC                   │
+
+    │  查询哪些 Map 任务已成功完成          │
+
+    └───────────────┬─────────────────────┘
+
+                    │
+
+                    ▼
+
+    ┌─────────────────────────────────────┐
+
+    │  过滤：只读取成功任务的中间文件       │
+
+    │  排除超时任务产生的"脏数据"          │
+
+    └───────────────┬─────────────────────┘
+
+                    │
+
+                    ▼
+
+    ┌─────────────────────────────────────┐
+
+    │  读取并合并所有 KV 对                │
+
+    │  JSON 解码                          │
+
+    └───────────────┬─────────────────────┘
+
+                    │
+
+                    ▼
+
+    ┌─────────────────────────────────────┐
+
+    │  按 Key 排序 (sort.Sort)            │
+
+    └───────────────┬─────────────────────┘
+
+                    │
+
+                    ▼
+
+    ┌─────────────────────────────────────┐
+
+    │  对相同 Key 的 Values 调用 reducef  │
+
+    │  写入临时文件                        │
+
+    └───────────────┬─────────────────────┘
+
+                    │
+
+                    ▼
+
+    ┌─────────────────────────────────────┐
+
+    │  原子重命名                          │
+
+    │  mr-out-tmp-* → mr-out-{ReduceNum} │
+
+    └─────────────────────────────────────┘
+
+```
+---
+
+## 7. 关键设计点总结
+
+### 设计决策对比
+
+|设计点|我的实现|论文描述|原因|
+|---|---|---|---|
+|**任务分配**|Worker Pull|Master Push|Lab RPC 限制|
+|**中间文件定位**|Worker 扫描本地|Master 通知|简化实现|
+|**超时检测**|Goroutine + Sleep|Master Ping|利用 Go 并发|
+|**脏数据过滤**|QueryTasks RPC|Worker 重新执行|避免读取超时任务数据|
+
+### 原子操作保障一致性
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+
+│               为什么需要原子重命名？                          │
+
+└─────────────────────────────────────────────────────────────┘
+
+场景：Worker A 执行 Task 1，写到一半超时
+
+      Worker B 重新执行 Task 1
+
+  时间线
+
+    │
+
+    ▼
+
+  ┌─────┐  Worker A 开始写 mr-1-0
+
+  │ t1  │  ─────────────────────────────►
+
+  └─────┘
+
+    │
+
+  ┌─────┐  Worker A 超时，Task 1 重新分配
+
+  │ t2  │  Worker B 开始执行 Task 1
+
+  └─────┘
+
+    │
+
+  ┌─────┐  如果直接写 mr-1-0，Worker A 和 B 会冲突！
+
+  │ t3  │  
+
+  └─────┘
+
+解决方案：
+
+  1. 先写临时文件 mr-tmp-xxx
+
+  2. 写完后原子重命名为 mr-1-0
+
+  3. 即使多个 Worker 写同一个 TaskId，最终只有一个成功
+```
+
+### 结果过滤机制
+
+```text
+
+┌─────────────────────────────────────────────────────────────┐
+
+│               为什么需要 QueryTasks？                        │
+
+└─────────────────────────────────────────────────────────────┘
+
+问题场景：
+
+  Task 1 (Worker A) ──► 完成 ──► mr-1-0, mr-1-1, ...
+
+  Task 2 (Worker B) ──► 超时 ──► mr-2-0, mr-2-1, ... (可能不完整)
+
+  Task 2 (Worker C) ──► 完成 ──► mr-2-0, mr-2-1, ... (正确数据)
+
+Reduce Worker 看到的文件：
+
+  mr-1-0, mr-2-0 (Worker B 的残留), mr-2-0 (Worker C 的)
+
+解决方案：
+
+  1. Reduce Worker 先 QueryTasks() 获取所有任务状态
+
+  2. 只读取 Status = 1 (已完成) 的任务产生的文件
+
+  3. 跳过超时任务的"脏数据"
+
+```
+---
+
+## 8. 测试结果
+
+```bash
+make mr
+
+
+
+--- PASS: TestCrashWorker (37.13s)
+PASS
+ok      6.5840/mr       96.143s
+
+```
+---
+
+## 9.总结
+
+1. **架构设计的权衡**：论文的 Master Push 模型更高效，但我设计的模型更容易实现，也更好调试。
     
-2. **结果过滤机制：** 我在 Reduce 阶段引入了 `QueryTasks` RPC。Worker 会先去问 Master：“磁盘上这些 Map 产出的中间文件，哪些对应的任务 ID 才是官方认证成功的？”。这样就从逻辑上屏蔽了超时任务留下的脏数据。
+2. **并发的复杂性**：即使是简单的 MapReduce，处理超时、重试、数据一致性也需要仔细思考。
     
-3. **双重状态控制：** Master 负责全局调度（切换 Stage），Worker 负责局部执行。两者通过 RPC 信号保持步调一致。
-
-
-**感悟：**
-比较繁琐，因为worker集合了Map和Reduce的逻辑，需要处理Map和Reduce的具体逻辑，需要一些算法处理。
-
-对了，对于Map和Reduce产出的文件一定是需要先os.CreateTemp然后再os.Rename原子命名的，避免worker只是超时而不是崩溃带来的数据竞争问题或者其他隐蔽的问题
-
-其实为了对应Master的各个状态Worker也是一个状态机的形式，读取外部传来的状态，执行对应的逻辑。
+3. **原子操作的重要性**：`os.CreateTemp` + `os.Rename` 是分布式系统中保证一致性的常用模式。
+    
+4. **状态机思维**：无论是 Coordinator 还是 Worker，用状态机来建模都让逻辑更清晰。
