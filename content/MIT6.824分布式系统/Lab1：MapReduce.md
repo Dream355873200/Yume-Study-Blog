@@ -359,7 +359,7 @@ func Worker(sockname string, mapf func(string, string) []KeyValue,
 3. **双重状态控制：** Master 负责全局调度（切换 Stage），Worker 负责局部执行。两者通过 RPC 信号保持步调一致。
 
 
-**总结：**
+**感悟：**
 比较繁琐，因为worker集合了Map和Reduce的逻辑，需要处理Map和Reduce的具体逻辑，需要一些算法处理。
 
 对了，对于Map和Reduce产出的文件一定是需要先os.CreateTemp然后再os.Rename原子命名的，避免worker只是超时而不是崩溃带来的数据竞争问题或者其他隐蔽的问题
