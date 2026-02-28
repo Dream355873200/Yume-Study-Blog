@@ -26,6 +26,9 @@ title: Yume's Blog
 > - [[Day5.1C++ shared_mutex底层]]
 > - [[Day6.1C++ shared_ptr底层]]
 > - [[Day7.1C++多种线程读安全的单例模式]]
-> - [[Lecture1：Introduction]]
 > - [[Lab1：MapReduce]]
+> - [[Lecture1：Introduction]]
+> - [[Lecture2：RPC and Threads]]
+> - [[Lecture3：GFS]]
+
 
