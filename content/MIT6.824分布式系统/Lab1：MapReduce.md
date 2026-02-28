@@ -10,7 +10,7 @@ tags:
 
 ## 1. 前言
 
-**参考论文：** _MapReduce: Simplified Data Processing on Large Clusters_, Jeffrey Dean and Sanjay Ghemawat, OSDI 2004 [[gfs.pdf]]
+**参考论文：** [[gfs.pdf]]
 
 ---
 
