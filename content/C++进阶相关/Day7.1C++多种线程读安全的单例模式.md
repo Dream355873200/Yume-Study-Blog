@@ -11,26 +11,19 @@ tags:
 它的主要特点是在程序开始时进行初始化，确保有对象使用它时它是初始化好的。
 代码在这里
 ```cpp
-template <typename T>  
-class Safe_Single0  
-{  
-private:  
-    Safe_Single0()=default;  
-    Safe_Single0(const Safe_Single0<T>&)=delete;  
-    Safe_Single0<T> operator=(const Safe_Single0<T>&)=delete;  
-     static T* _instance=nullptr;  
-public:  
-    static T* GetInstance()  
-    {  
-        if(_instance==nullptr)  
-        {  
-            _instance=new T;  
-        }  
-  
-  
-        return _instance;  
-    }  
-};//饿汉式，麻烦
+template <typename T>
+class Hungry_Singleton {
+private:
+    static T _instance;  // 程序启动时就创建
+    Hungry_Singleton() = default;
+public:
+    static T& GetInstance() {
+        return _instance;
+    }
+};
+
+template <typename T>
+T Hungry_Singleton<T>::_instance;  // 类外初始化，main之前执行//饿汉式，麻烦
 ```
 但是比较麻烦的是在每个程序开始写的时候都要初始化一次，这在微服务场景是可能忘记引发错误的，
 所以又引出了懒汉式单例模板，它的特点是使用双重检查锁来保证对象的初始化只有一次。

@@ -65,16 +65,16 @@ GFS 论文发布于 2003 年，正是互联网高速发展的时期（也是互�
 
 ## GFS 的设计特性
 
-|特性|说明|
-|---|---|
-|**Big**|支持 PB 级数据存储|
-|**Fast**|高聚合吞吐量|
-|**Global**|全局统一命名空间，任何人都能访问|
-|**Sharding**|大文件自动分片存储|
-|**Automatic Recovery**|自动故障恢复|
-|**Single Data Center**|仅部署在单一数据中心|
-|**Internal Use**|专为 Google 内部工程师设计|
-|**Big Sequential Access**|针对大文件顺序读写优化|
+| 特性                        | 说明                |     |
+| ------------------------- | ----------------- | --- |
+| **Big**                   | 支持 PB 级数据存储       |     |
+| **Fast**                  | 高聚合吞吐量            |     |
+| **Global**                | 全局统一命名空间，任何人都能访问  |     |
+| **Sharding**              | 大文件自动分片存储         |     |
+| **Automatic Recovery**    | 自动故障恢复            |     |
+| **Single Data Center**    | 仅部署在单一数据中心        |     |
+| **Internal Use**          | 专为 Google 内部工程师设计 |     |
+| **Big Sequential Access** | 针对大文件顺序读写优化       |     |
 
 ### GFS 的设计目标
 

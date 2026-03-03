@@ -9,6 +9,33 @@ tags:
 ---
 今天学习`std::shared_ptr`**底层源码**
 
+总体是这样的结构
+```text
+shared_ptr<T>
+    │
+    └── __shared_ptr<T>
+            │
+            ├── T* _M_ptr              // 资源指针
+            │
+            └── __shared_count
+                    │
+                    └── _Sp_counted_base* _M_pi   // 指向控制块
+                            │
+                            ├── _M_use_count      // 强引用计数
+                            └── _M_weak_count     // 弱引用计数
+                            │
+                    ┌───────┴───────┐
+                    │               │
+            _Sp_counted_ptr   _Sp_counted_deleter
+            (普通版本)         (带删除器版本)
+```
+
+
+
+
+
+这是共享指针的定义
+
 ```cpp
 template<typename _Tp>  
   class shared_ptr : public __shared_ptr<_Tp>

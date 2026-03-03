@@ -7,6 +7,32 @@ tags:
   - "#c-plus-plus"
   - mutex
 ---
+总体结构：
+
+```text
+std::shared_mutex
+    │
+    └── __shared_mutex_pthread  (或 __shared_mutex_cv)
+            │
+            └── pthread_rwlock_t _M_rwlock   // 64位整型
+                    │
+                    ├── [位段] 写锁标志位
+                    ├── [位段] 读者计数
+                    └── [位段] 等待队列相关
+                    │
+                    ▼
+            ┌───────────────────┐
+            │  系统 API (DLL)    │
+            ├───────────────────┤
+            │ rwlock_rdlock     │  读锁
+            │ rwlock_wrlock     │  写锁
+            │ rwlock_tryrdlock  │  尝试读锁
+            │ rwlock_trywrlock  │  尝试写锁
+            │ rwlock_unlock     │  解锁
+            └───────────────────┘
+```
+
+
 今天研究std::shared_mutex**底层源码**：
 
 ```cpp
